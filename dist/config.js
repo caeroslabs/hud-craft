@@ -5,9 +5,9 @@ export const DEFAULT_CONFIG = {
     lineLayout: 'expanded',
     showSeparators: false,
     pathLevels: 1,
-    barStyle: 'block',
-    barWidth: 10,
-    emojiMode: 'minimal',
+    barStyle: 'segment',
+    barWidth: 6,
+    emojiMode: 'full',
     gitStatus: {
         enabled: true,
         showDirty: true,

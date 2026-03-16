@@ -1,6 +1,6 @@
 import type { RenderContext } from '../../types.js';
 import { getContextPercent, getBufferedPercent, getTotalTokens } from '../../stdin.js';
-import { coloredBar, dim, getContextColor, RESET } from '../colors.js';
+import { dim, getContextColor, RESET } from '../colors.js';
 
 const DEBUG = process.env.DEBUG?.includes('hud-craft') || process.env.DEBUG === '*';
 
@@ -19,9 +19,7 @@ export function renderIdentityLine(ctx: RenderContext): string {
   const contextValue = formatContextValue(ctx, percent, contextValueMode);
   const contextValueDisplay = `${getContextColor(percent)}${contextValue}${RESET}`;
 
-  let line = display?.showContextBar !== false
-    ? `${dim('Context')} ${coloredBar(percent, ctx.config?.barWidth, ctx.config?.barStyle)} ${contextValueDisplay}`
-    : `${dim('Context')} ${contextValueDisplay}`;
+  let line = `🧠 ${contextValueDisplay}`;
 
   if (display?.showTokenBreakdown !== false && percent >= 85) {
     const usage = ctx.stdin.context_window?.current_usage;

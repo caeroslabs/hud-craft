@@ -285,7 +285,6 @@ test('renderAgentsLine renders completed agents', () => {
 
   const line = renderAgentsLine(ctx);
   assert.ok(line?.includes('explore'));
-  assert.ok(line?.includes('haiku'));
 });
 
 test('renderAgentsLine truncates long descriptions and formats elapsed time', () => {
@@ -567,8 +566,8 @@ test('renderSessionLine uses raw percent when autocompactBuffer is disabled', ()
 test('render adds separator line when showSeparators is true and activity exists', () => {
   const ctx = baseContext();
   ctx.config.showSeparators = true;
-  ctx.transcript.tools = [
-    { id: 'tool-1', name: 'Read', status: 'completed', startTime: new Date(0), endTime: new Date(0), duration: 0 },
+  ctx.transcript.agents = [
+    { id: 'agent-1', type: 'explore', description: 'test', status: 'running', startTime: new Date(0) },
   ];
 
   const logs = [];

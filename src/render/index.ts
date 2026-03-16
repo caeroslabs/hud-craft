@@ -1,6 +1,6 @@
 import type { RenderContext } from '../types.js';
 import { renderSessionLine } from './session-line.js';
-import { renderToolsLine } from './tools-line.js';
+import { renderToolsLine, renderCompactToolsLine } from './tools-line.js';
 import { renderAgentsLine } from './agents-line.js';
 import { renderTodosLine } from './todos-line.js';
 import {
@@ -27,13 +27,6 @@ function makeSeparator(length: number): string {
 function collectActivityLines(ctx: RenderContext): string[] {
   const activityLines: string[] = [];
   const display = ctx.config?.display;
-
-  if (display?.showTools !== false) {
-    const toolsLine = renderToolsLine(ctx);
-    if (toolsLine) {
-      activityLines.push(toolsLine);
-    }
-  }
 
   if (display?.showAgents !== false) {
     const agentsLine = renderAgentsLine(ctx);
@@ -66,23 +59,24 @@ function renderCompact(ctx: RenderContext): string[] {
 function renderExpanded(ctx: RenderContext): string[] {
   const lines: string[] = [];
 
+  // 라인 1: 프로젝트 (계정 · 모델 · 경로 · git)
   const projectLine = renderProjectLine(ctx);
-  if (projectLine) {
-    lines.push(projectLine);
-  }
+  if (projectLine) lines.push(projectLine);
 
+  // 라인 2: 사용량 바 · 컨텍스트 (usage BEFORE identity, separated by ·)
   const identityLine = renderIdentityLine(ctx);
   const usageLine = renderUsageLine(ctx);
-  if (identityLine && usageLine) {
-    lines.push(`${identityLine} \u2502 ${usageLine}`);
+  if (usageLine && identityLine) {
+    lines.push(`${usageLine} ${dim('·')} ${identityLine}`);
+  } else if (usageLine) {
+    lines.push(usageLine);
   } else if (identityLine) {
     lines.push(identityLine);
   }
 
-  const environmentLine = renderEnvironmentLine(ctx);
-  if (environmentLine) {
-    lines.push(environmentLine);
-  }
+  // 라인 3: 도구 (이모지+개수 컴팩트)
+  const compactTools = renderCompactToolsLine(ctx);
+  if (compactTools) lines.push(compactTools);
 
   return lines;
 }

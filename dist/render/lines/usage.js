@@ -1,7 +1,6 @@
 import { isLimitReached } from '../../types.js';
 import { getProviderLabel } from '../../stdin.js';
-import { red, yellow, dim, getContextColor, quotaBar, RESET } from '../colors.js';
-import { emoji } from '../emojis.js';
+import { red, yellow, dim, getQuotaColor, quotaBar, RESET } from '../colors.js';
 export function renderUsageLine(ctx) {
     const display = ctx.config?.display;
     if (display?.showUsage === false) {
@@ -13,16 +12,16 @@ export function renderUsageLine(ctx) {
     if (getProviderLabel(ctx.stdin)) {
         return null;
     }
-    const label = dim('Usage');
+    const label = '⚡';
     if (ctx.usageData.apiUnavailable) {
         const errorHint = formatUsageError(ctx.usageData.apiError);
-        return `${label} ${yellow(emoji('warning', ctx.config?.emojiMode ?? 'minimal') + errorHint)}`;
+        return `${label} ${yellow(`⚠${errorHint}`)}`;
     }
     if (isLimitReached(ctx.usageData)) {
         const resetTime = ctx.usageData.fiveHour === 100
             ? formatResetTime(ctx.usageData.fiveHourResetAt)
             : formatResetTime(ctx.usageData.sevenDayResetAt);
-        return `${label} ${red(emoji('warning', ctx.config?.emojiMode ?? 'minimal') + `Limit reached${resetTime ? ` (resets ${resetTime})` : ''}`)}`;
+        return `${label} ${red(`⚠ Limit reached${resetTime ? ` (resets ${resetTime})` : ''}`)}`;
     }
     const threshold = display?.usageThreshold ?? 0;
     const fiveHour = ctx.usageData.fiveHour;
@@ -32,11 +31,11 @@ export function renderUsageLine(ctx) {
         return null;
     }
     const fiveHourDisplay = formatUsagePercent(ctx.usageData.fiveHour);
-    const fiveHourReset = formatResetTime(ctx.usageData.fiveHourResetAt);
+    const fiveHourReset = formatFiveHourReset(ctx.usageData.fiveHourResetAt);
     const usageBarEnabled = display?.usageBarEnabled ?? true;
     const fiveHourPart = usageBarEnabled
         ? (fiveHourReset
-            ? `${quotaBar(fiveHour ?? 0, ctx.config?.barWidth, ctx.config?.barStyle)} ${fiveHourDisplay} (${fiveHourReset} / 5h)`
+            ? `${quotaBar(fiveHour ?? 0, ctx.config?.barWidth, ctx.config?.barStyle)} ${fiveHourDisplay} (${fiveHourReset})`
             : `${quotaBar(fiveHour ?? 0, ctx.config?.barWidth, ctx.config?.barStyle)} ${fiveHourDisplay}`)
         : (fiveHourReset
             ? `5h: ${fiveHourDisplay} (${fiveHourReset})`
@@ -44,13 +43,13 @@ export function renderUsageLine(ctx) {
     const sevenDayThreshold = display?.sevenDayThreshold ?? 80;
     if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
         const sevenDayDisplay = formatUsagePercent(sevenDay);
-        const sevenDayReset = formatResetTime(ctx.usageData.sevenDayResetAt);
+        const sevenDayReset = formatSevenDayReset(ctx.usageData.sevenDayResetAt);
         const sevenDayPart = usageBarEnabled
             ? (sevenDayReset
-                ? `${quotaBar(sevenDay, ctx.config?.barWidth, ctx.config?.barStyle)} ${sevenDayDisplay} (${sevenDayReset} / 7d)`
+                ? `${quotaBar(sevenDay, ctx.config?.barWidth, ctx.config?.barStyle)} ${sevenDayDisplay} (${sevenDayReset})`
                 : `${quotaBar(sevenDay, ctx.config?.barWidth, ctx.config?.barStyle)} ${sevenDayDisplay}`)
             : `7d: ${sevenDayDisplay}`;
-        return `${label} ${fiveHourPart} | ${sevenDayPart}`;
+        return `${label} ${fiveHourPart} · ${sevenDayPart}`;
     }
     return `${label} ${fiveHourPart}`;
 }
@@ -58,7 +57,7 @@ function formatUsagePercent(percent) {
     if (percent === null) {
         return dim('--');
     }
-    const color = getContextColor(percent);
+    const color = getQuotaColor(percent);
     return `${color}${percent}%${RESET}`;
 }
 function formatUsageError(error) {
@@ -69,18 +68,39 @@ function formatUsageError(error) {
     }
     return ` (${error})`;
 }
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+function toKst(date) {
+    return new Date(date.getTime() + KST_OFFSET_MS);
+}
+function formatFiveHourReset(resetAt) {
+    if (!resetAt)
+        return '';
+    if (resetAt.getTime() - Date.now() <= 0)
+        return '';
+    const kst = toKst(resetAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
+}
+function formatSevenDayReset(resetAt) {
+    if (!resetAt)
+        return '';
+    if (resetAt.getTime() - Date.now() <= 0)
+        return '';
+    const kst = toKst(resetAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    const month = pad(kst.getUTCMonth() + 1);
+    const day = pad(kst.getUTCDate());
+    const hours = pad(kst.getUTCHours());
+    const mins = pad(kst.getUTCMinutes());
+    return `${month}/${day} ${hours}:${mins}`;
+}
 function formatResetTime(resetAt) {
     if (!resetAt)
         return '';
-    const now = new Date();
-    const diffMs = resetAt.getTime() - now.getTime();
-    if (diffMs <= 0)
+    if (resetAt.getTime() - Date.now() <= 0)
         return '';
-    const diffMins = Math.ceil(diffMs / 60000);
-    if (diffMins < 60)
-        return `${diffMins}m`;
-    const hours = Math.floor(diffMins / 60);
-    const mins = diffMins % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    const kst = toKst(resetAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
 }
 //# sourceMappingURL=usage.js.map
