@@ -1,11 +1,13 @@
+#!/usr/bin/env node
 import { readStdin } from './stdin.js';
 import { parseTranscript } from './transcript.js';
 import { render } from './render/index.js';
 import { countConfigs } from './config-reader.js';
 import { getGitStatus } from './git.js';
 import { getUsage } from './usage-api.js';
-import { loadConfig } from './config.js';
+import { loadConfig, parseCliOverrides } from './config.js';
 import { parseExtraCmdArg, runExtraCmd } from './extra-cmd.js';
+import { applyCustomColors } from './render/colors.js';
 import { fileURLToPath } from 'node:url';
 import { realpathSync } from 'node:fs';
 export async function main(overrides = {}) {
@@ -32,7 +34,13 @@ export async function main(overrides = {}) {
         const transcriptPath = stdin.transcript_path ?? '';
         const transcript = await deps.parseTranscript(transcriptPath);
         const { claudeMdCount, rulesCount, mcpCount, hooksCount } = await deps.countConfigs(stdin.cwd);
-        const config = await deps.loadConfig();
+        const baseConfig = await deps.loadConfig(stdin.cwd);
+        const cliOverrides = parseCliOverrides();
+        const config = { ...baseConfig, ...cliOverrides };
+        // 커스텀 색상 적용
+        if (config.colors && Object.keys(config.colors).length > 0) {
+            applyCustomColors(config.colors);
+        }
         const gitStatus = config.gitStatus.enabled
             ? await deps.getGitStatus(stdin.cwd)
             : null;

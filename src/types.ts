@@ -72,6 +72,7 @@ export interface TranscriptData {
   agents: AgentEntry[];
   todos: TodoItem[];
   sessionStart?: Date;
+  thinkingActive?: boolean;
 }
 
 export interface RenderContext {

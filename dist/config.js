@@ -8,6 +8,8 @@ export const DEFAULT_CONFIG = {
     barStyle: 'segment',
     barWidth: 6,
     emojiMode: 'full',
+    elementOrder: ['project', 'usage', 'identity', 'tools', 'environment'],
+    colors: {},
     gitStatus: {
         enabled: true,
         showDirty: true,
@@ -27,6 +29,8 @@ export const DEFAULT_CONFIG = {
         showTools: true,
         showAgents: true,
         showTodos: true,
+        showCost: false,
+        showThinking: true,
         autocompactBuffer: 'enabled',
         usageThreshold: 0,
         sevenDayThreshold: 80,
@@ -36,6 +40,14 @@ export const DEFAULT_CONFIG = {
 export function getConfigPath() {
     const homeDir = os.homedir();
     return path.join(homeDir, '.claude', 'plugins', 'hud-craft', 'config.json');
+}
+export function getProjectConfigPath(cwd) {
+    if (!cwd)
+        return null;
+    const projectConfig = path.join(cwd, '.hud-craft.json');
+    if (fs.existsSync(projectConfig))
+        return projectConfig;
+    return null;
 }
 function validatePathLevels(value) {
     return value === 1 || value === 2 || value === 3;
@@ -47,18 +59,38 @@ function validateAutocompactBuffer(value) {
     return value === 'enabled' || value === 'disabled';
 }
 function validateContextValue(value) {
-    return value === 'percent' || value === 'tokens';
+    return value === 'percent' || value === 'tokens' || value === 'remaining';
 }
 function validateBarStyle(value) {
     return value === 'block' || value === 'segment' || value === 'dot' || value === 'ascii';
 }
 function validateEmojiMode(value) {
-    return value === 'full' || value === 'minimal' || value === 'none';
+    return value === 'full' || value === 'minimal' || value === 'none' || value === 'nerd';
 }
 function validateBarWidth(value) {
     if (typeof value !== 'number' || !Number.isFinite(value))
         return DEFAULT_CONFIG.barWidth;
     return Math.max(4, Math.min(20, Math.round(value)));
+}
+function validateElementOrder(value) {
+    if (!Array.isArray(value))
+        return DEFAULT_CONFIG.elementOrder;
+    const valid = ['project', 'usage', 'identity', 'tools', 'environment', 'agents', 'todos', 'cost'];
+    const filtered = value.filter((v) => valid.includes(v));
+    return filtered.length > 0 ? filtered : DEFAULT_CONFIG.elementOrder;
+}
+function validateColors(value) {
+    if (typeof value !== 'object' || value === null)
+        return {};
+    const allowed = ['contextLow', 'contextMid', 'contextHigh', 'quotaLow', 'quotaMid', 'quotaHigh', 'accent', 'dim'];
+    const result = {};
+    for (const key of allowed) {
+        const v = value[key];
+        if (typeof v === 'string') {
+            result[key] = v;
+        }
+    }
+    return result;
 }
 function migrateConfig(userConfig) {
     const migrated = { ...userConfig };
@@ -98,6 +130,8 @@ function mergeConfig(userConfig) {
     const emojiMode = validateEmojiMode(migrated.emojiMode)
         ? migrated.emojiMode
         : DEFAULT_CONFIG.emojiMode;
+    const elementOrder = validateElementOrder(migrated.elementOrder);
+    const colors = validateColors(migrated.colors);
     const gitStatus = {
         enabled: typeof migrated.gitStatus?.enabled === 'boolean'
             ? migrated.gitStatus.enabled
@@ -149,6 +183,12 @@ function mergeConfig(userConfig) {
         showTodos: typeof migrated.display?.showTodos === 'boolean'
             ? migrated.display.showTodos
             : DEFAULT_CONFIG.display.showTodos,
+        showCost: typeof migrated.display?.showCost === 'boolean'
+            ? migrated.display.showCost
+            : DEFAULT_CONFIG.display.showCost,
+        showThinking: typeof migrated.display?.showThinking === 'boolean'
+            ? migrated.display.showThinking
+            : DEFAULT_CONFIG.display.showThinking,
         autocompactBuffer: validateAutocompactBuffer(migrated.display?.autocompactBuffer)
             ? migrated.display.autocompactBuffer
             : DEFAULT_CONFIG.display.autocompactBuffer,
@@ -156,20 +196,69 @@ function mergeConfig(userConfig) {
         sevenDayThreshold: validateThreshold(migrated.display?.sevenDayThreshold, 100),
         environmentThreshold: validateThreshold(migrated.display?.environmentThreshold, 100),
     };
-    return { lineLayout, showSeparators, pathLevels, barStyle, barWidth, emojiMode, gitStatus, display };
+    return { lineLayout, showSeparators, pathLevels, barStyle, barWidth, emojiMode, elementOrder, colors, gitStatus, display };
 }
-export async function loadConfig() {
-    const configPath = getConfigPath();
-    try {
-        if (!fs.existsSync(configPath)) {
-            return DEFAULT_CONFIG;
+export function parseCliOverrides() {
+    const overrides = {};
+    const args = process.argv.slice(2);
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        const next = args[i + 1];
+        if (arg === '--theme' && next) {
+            const theme = THEME_PRESETS[next];
+            if (theme)
+                Object.assign(overrides, theme);
+            i++;
         }
-        const content = fs.readFileSync(configPath, 'utf-8');
-        const userConfig = JSON.parse(content);
-        return mergeConfig(userConfig);
+        else if (arg === '--bar-style' && next) {
+            if (validateBarStyle(next))
+                overrides.barStyle = next;
+            i++;
+        }
+        else if (arg === '--bar-width' && next) {
+            overrides.barWidth = validateBarWidth(parseInt(next, 10));
+            i++;
+        }
+        else if (arg === '--emoji-mode' && next) {
+            if (validateEmojiMode(next))
+                overrides.emojiMode = next;
+            i++;
+        }
+        else if (arg === '--layout' && next) {
+            if (validateLineLayout(next))
+                overrides.lineLayout = next;
+            i++;
+        }
     }
-    catch {
-        return DEFAULT_CONFIG;
+    return overrides;
+}
+const THEME_PRESETS = {
+    default: { barStyle: 'segment', barWidth: 6, emojiMode: 'full' },
+    powerline: { barStyle: 'segment', barWidth: 10, emojiMode: 'full' },
+    clean: { barStyle: 'dot', barWidth: 10, emojiMode: 'none' },
+    hacker: { barStyle: 'ascii', barWidth: 8, emojiMode: 'none', lineLayout: 'compact', showSeparators: true },
+    minimal: { barStyle: 'block', barWidth: 6, emojiMode: 'minimal' },
+};
+export { THEME_PRESETS };
+export async function loadConfig(cwd) {
+    let userConfig = {};
+    // 1. 글로벌 설정 로딩
+    const globalPath = getConfigPath();
+    try {
+        if (fs.existsSync(globalPath)) {
+            userConfig = JSON.parse(fs.readFileSync(globalPath, 'utf-8'));
+        }
     }
+    catch { /* ignore */ }
+    // 2. 프로젝트 설정 오버라이드
+    const projectPath = getProjectConfigPath(cwd);
+    if (projectPath) {
+        try {
+            const projectConfig = JSON.parse(fs.readFileSync(projectPath, 'utf-8'));
+            userConfig = { ...userConfig, ...projectConfig };
+        }
+        catch { /* ignore */ }
+    }
+    return mergeConfig(userConfig);
 }
 //# sourceMappingURL=config.js.map

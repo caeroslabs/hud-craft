@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { readStdin } from './stdin.js';
 import { parseTranscript } from './transcript.js';
 import { render } from './render/index.js';

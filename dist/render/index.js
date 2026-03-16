@@ -2,7 +2,8 @@ import { renderSessionLine } from './session-line.js';
 import { renderCompactToolsLine } from './tools-line.js';
 import { renderAgentsLine } from './agents-line.js';
 import { renderTodosLine } from './todos-line.js';
-import { renderIdentityLine, renderProjectLine, renderUsageLine, } from './lines/index.js';
+import { renderCostLine } from './cost-line.js';
+import { renderIdentityLine, renderProjectLine, renderEnvironmentLine, renderUsageLine, } from './lines/index.js';
 import { dim, RESET } from './colors.js';
 function stripAnsi(str) {
     // eslint-disable-next-line no-control-regex
@@ -12,7 +13,18 @@ function visualLength(str) {
     return stripAnsi(str).length;
 }
 function makeSeparator(length) {
-    return dim('─'.repeat(Math.max(length, 20)));
+    return dim('\u2500'.repeat(Math.max(length, 20)));
+}
+function renderSegment(ctx, name) {
+    switch (name) {
+        case 'project': return renderProjectLine(ctx);
+        case 'usage': return renderUsageLine(ctx);
+        case 'identity': return renderIdentityLine(ctx);
+        case 'tools': return renderCompactToolsLine(ctx);
+        case 'environment': return renderEnvironmentLine(ctx);
+        case 'cost': return ctx.config?.display?.showCost ? renderCostLine(ctx) : null;
+        default: return null;
+    }
 }
 function collectActivityLines(ctx) {
     const activityLines = [];
@@ -41,26 +53,38 @@ function renderCompact(ctx) {
 }
 function renderExpanded(ctx) {
     const lines = [];
-    // 라인 1: 프로젝트 (계정 · 모델 · 경로 · git)
-    const projectLine = renderProjectLine(ctx);
-    if (projectLine)
-        lines.push(projectLine);
-    // 라인 2: 사용량 바 · 컨텍스트 (usage BEFORE identity, separated by ·)
-    const identityLine = renderIdentityLine(ctx);
-    const usageLine = renderUsageLine(ctx);
-    if (usageLine && identityLine) {
-        lines.push(`${usageLine} ${dim('·')} ${identityLine}`);
+    const order = ctx.config?.elementOrder ?? ['project', 'usage', 'identity', 'tools', 'environment'];
+    // usage와 identity가 연속이면 한 줄로 합침
+    const usageIdx = order.indexOf('usage');
+    const identityIdx = order.indexOf('identity');
+    const mergeUsageIdentity = usageIdx >= 0 && identityIdx >= 0 && identityIdx === usageIdx + 1;
+    for (let i = 0; i < order.length; i++) {
+        const segment = order[i];
+        if (segment === 'usage' && mergeUsageIdentity) {
+            // usage와 identity를 한 줄로
+            const usageLine = renderUsageLine(ctx);
+            const identityLine = renderIdentityLine(ctx);
+            if (usageLine && identityLine) {
+                lines.push(`${usageLine} ${dim('\u00B7')} ${identityLine}`);
+            }
+            else if (usageLine) {
+                lines.push(usageLine);
+            }
+            else if (identityLine) {
+                lines.push(identityLine);
+            }
+            continue;
+        }
+        if (segment === 'identity' && mergeUsageIdentity)
+            continue; // 위에서 처리됨
+        const line = renderSegment(ctx, segment);
+        if (line)
+            lines.push(line);
     }
-    else if (usageLine) {
-        lines.push(usageLine);
+    // thinking 인디케이터: 첫 번째 라인 끝에 추가
+    if (ctx.config?.display?.showThinking && ctx.transcript.thinkingActive && lines.length > 0) {
+        lines[0] = `${lines[0]} ${dim('\u{1F4AD}')}`;
     }
-    else if (identityLine) {
-        lines.push(identityLine);
-    }
-    // 라인 3: 도구 (이모지+개수 컴팩트)
-    const compactTools = renderCompactToolsLine(ctx);
-    if (compactTools)
-        lines.push(compactTools);
     return lines;
 }
 export function render(ctx) {

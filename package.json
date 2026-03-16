@@ -4,6 +4,22 @@
   "description": "Customizable statusline HUD for Claude Code - bar styles, emoji modes, and more",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "hud-craft": "dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./config": "./dist/config.js"
+  },
+  "files": [
+    "dist",
+    "commands",
+    "skills",
+    ".claude-plugin",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -16,7 +32,11 @@
     "claude-code",
     "statusline",
     "hud",
-    "customizable"
+    "customizable",
+    "claude",
+    "terminal",
+    "plugin",
+    "theme"
   ],
   "author": "hud-craft contributors",
   "license": "MIT",

@@ -1,7 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as http from 'http';
 import * as https from 'https';
+import * as tls from 'tls';
+import * as url from 'node:url';
 import { execFileSync } from 'child_process';
 import type { UsageData } from './types.js';
 import { createDebug } from './debug.js';
@@ -387,43 +390,121 @@ function parseDate(dateStr: string | undefined): Date | null {
   return date;
 }
 
+function getProxyUrl(): url.URL | null {
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy
+    || process.env.HTTP_PROXY || process.env.http_proxy
+    || process.env.ALL_PROXY || process.env.all_proxy;
+  if (!proxyUrl) return null;
+  try {
+    return new url.URL(proxyUrl);
+  } catch {
+    return null;
+  }
+}
+
+function handleResponse(res: http.IncomingMessage, resolve: (value: UsageApiResult) => void): void {
+  let data = '';
+
+  res.on('data', (chunk: Buffer) => {
+    data += chunk.toString();
+  });
+
+  res.on('end', () => {
+    if (res.statusCode !== 200) {
+      debug('API returned non-200 status:', res.statusCode);
+      resolve({ data: null, error: res.statusCode ? `http-${res.statusCode}` : 'http-error' });
+      return;
+    }
+
+    try {
+      const parsed: UsageApiResponse = JSON.parse(data);
+      resolve({ data: parsed });
+    } catch (error) {
+      debug('Failed to parse API response:', error);
+      resolve({ data: null, error: 'parse' });
+    }
+  });
+}
+
 function fetchUsageApi(accessToken: string): Promise<UsageApiResult> {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.anthropic.com',
-      path: '/api/oauth/usage',
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'anthropic-beta': 'oauth-2025-04-20',
-        'User-Agent': 'hud-craft/1.0',
-      },
-      timeout: 5000,
-    };
+  const targetHost = 'api.anthropic.com';
+  const targetPath = '/api/oauth/usage';
+  const requestHeaders: Record<string, string> = {
+    'Authorization': `Bearer ${accessToken}`,
+    'anthropic-beta': 'oauth-2025-04-20',
+    'User-Agent': 'hud-craft/1.0',
+  };
 
-    const req = https.request(options, (res) => {
-      let data = '';
+  const proxy = getProxyUrl();
 
-      res.on('data', (chunk: Buffer) => {
-        data += chunk.toString();
+  if (proxy) {
+    return new Promise((resolve) => {
+      const connectReq = http.request({
+        hostname: proxy.hostname,
+        port: parseInt(proxy.port || '8080', 10),
+        method: 'CONNECT',
+        path: `${targetHost}:443`,
+        headers: { 'Host': `${targetHost}:443` },
+        timeout: 5000,
       });
 
-      res.on('end', () => {
-        if (res.statusCode !== 200) {
-          debug('API returned non-200 status:', res.statusCode);
-          resolve({ data: null, error: res.statusCode ? `http-${res.statusCode}` : 'http-error' });
-          return;
-        }
+      connectReq.on('connect', (_res, socket) => {
+        const tlsSocket = tls.connect({
+          host: targetHost,
+          socket: socket,
+          servername: targetHost,
+        }, () => {
+          const req = https.request({
+            hostname: targetHost,
+            path: targetPath,
+            method: 'GET',
+            headers: requestHeaders,
+            timeout: 5000,
+            socket: tlsSocket,
+            agent: false,
+          } as https.RequestOptions, (res) => handleResponse(res, resolve));
 
-        try {
-          const parsed: UsageApiResponse = JSON.parse(data);
-          resolve({ data: parsed });
-        } catch (error) {
-          debug('Failed to parse API response:', error);
-          resolve({ data: null, error: 'parse' });
-        }
+          req.on('error', (error) => {
+            debug('API request error via proxy:', error);
+            resolve({ data: null, error: 'network' });
+          });
+          req.on('timeout', () => {
+            debug('API request timeout via proxy');
+            req.destroy();
+            resolve({ data: null, error: 'timeout' });
+          });
+
+          req.end();
+        });
+
+        tlsSocket.on('error', (error) => {
+          debug('TLS tunnel error:', error);
+          resolve({ data: null, error: 'proxy-tls' });
+        });
       });
+
+      connectReq.on('error', (error) => {
+        debug('Proxy CONNECT error:', error);
+        resolve({ data: null, error: 'proxy' });
+      });
+      connectReq.on('timeout', () => {
+        debug('Proxy CONNECT timeout');
+        connectReq.destroy();
+        resolve({ data: null, error: 'proxy-timeout' });
+      });
+
+      connectReq.end();
     });
+  }
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: targetHost,
+      path: targetPath,
+      method: 'GET',
+      headers: requestHeaders,
+      timeout: 5000,
+    }, (res) => handleResponse(res, resolve));
 
     req.on('error', (error) => {
       debug('API request error:', error);

@@ -4,7 +4,9 @@ import type { TranscriptData, ToolEntry, AgentEntry, TodoItem } from './types.js
 
 interface TranscriptLine {
   timestamp?: string;
+  type?: string; // 'human', 'assistant', etc.
   message?: {
+    role?: string;
     content?: ContentBlock[];
   };
 }
@@ -33,6 +35,8 @@ export async function parseTranscript(transcriptPath: string): Promise<Transcrip
   const agentMap = new Map<string, AgentEntry>();
   let latestTodos: TodoItem[] = [];
   const taskIdToIndex = new Map<string, number>();
+  let lastEntryIsUser = false;
+  let hasRunningTools = false;
 
   try {
     const fileStream = fs.createReadStream(transcriptPath);
@@ -46,6 +50,15 @@ export async function parseTranscript(transcriptPath: string): Promise<Transcrip
 
       try {
         const entry = JSON.parse(line) as TranscriptLine;
+
+        // thinking 감지: 마지막 엔트리 타입 추적
+        const role = entry.message?.role ?? entry.type;
+        if (role === 'human' || role === 'user') {
+          lastEntryIsUser = true;
+        } else if (role === 'assistant') {
+          lastEntryIsUser = false;
+        }
+
         processEntry(entry, toolMap, agentMap, taskIdToIndex, latestTodos, result);
       } catch {
         // Skip malformed lines
@@ -58,6 +71,10 @@ export async function parseTranscript(transcriptPath: string): Promise<Transcrip
   result.tools = Array.from(toolMap.values()).slice(-20);
   result.agents = Array.from(agentMap.values()).slice(-10);
   result.todos = latestTodos;
+
+  // thinking 감지: 실행 중인 도구가 없고 마지막 엔트리가 user이면 thinking 상태
+  hasRunningTools = Array.from(toolMap.values()).some(t => t.status === 'running');
+  result.thinkingActive = lastEntryIsUser && !hasRunningTools;
 
   return result;
 }

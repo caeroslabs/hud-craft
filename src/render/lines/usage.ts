@@ -84,36 +84,30 @@ function formatUsageError(error?: string): string {
   return ` (${error})`;
 }
 
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+function formatLocalTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
-function toKst(date: Date): Date {
-  return new Date(date.getTime() + KST_OFFSET_MS);
+function formatLocalDateTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function formatFiveHourReset(resetAt: Date | null): string {
   if (!resetAt) return '';
   if (resetAt.getTime() - Date.now() <= 0) return '';
-  const kst = toKst(resetAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
+  return formatLocalTime(resetAt);
 }
 
 function formatSevenDayReset(resetAt: Date | null): string {
   if (!resetAt) return '';
   if (resetAt.getTime() - Date.now() <= 0) return '';
-  const kst = toKst(resetAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const month = pad(kst.getUTCMonth() + 1);
-  const day = pad(kst.getUTCDate());
-  const hours = pad(kst.getUTCHours());
-  const mins = pad(kst.getUTCMinutes());
-  return `${month}/${day} ${hours}:${mins}`;
+  return formatLocalDateTime(resetAt);
 }
 
 function formatResetTime(resetAt: Date | null): string {
   if (!resetAt) return '';
   if (resetAt.getTime() - Date.now() <= 0) return '';
-  const kst = toKst(resetAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}`;
+  return formatLocalTime(resetAt);
 }
