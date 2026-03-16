@@ -1,0 +1,13 @@
+{
+  "name": "hud-craft",
+  "description": "Customizable statusline HUD for Claude Code - bar styles, emoji modes, and more",
+  "version": "1.0.0",
+  "author": {
+    "name": "hud-craft contributors",
+    "url": "https://github.com/caeroslabs/hud-craft"
+  },
+  "homepage": "https://github.com/caeroslabs/hud-craft",
+  "repository": "https://github.com/caeroslabs/hud-craft",
+  "license": "MIT",
+  "keywords": ["hud", "monitoring", "statusline", "context", "tools", "agents", "todos", "claude-code", "customizable"]
+}

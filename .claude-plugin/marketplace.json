@@ -1,0 +1,20 @@
+{
+  "name": "hud-craft",
+  "owner": {
+    "name": "hud-craft contributors",
+    "email": "hud-craft@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "Customizable statusline HUD for Claude Code - bar styles, emoji modes, and more",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "hud-craft",
+      "source": "./",
+      "description": "Customizable real-time statusline with configurable bar styles, emoji modes, and display options. Zero config required, deep customization available.",
+      "category": "monitoring",
+      "tags": ["hud", "statusline", "monitoring", "context", "tools", "agents", "todos", "customizable"]
+    }
+  ]
+}
