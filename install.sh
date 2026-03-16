@@ -519,8 +519,13 @@ fi
 if [ "$STATUSLINE_HAS_OTHER" = true ] && [ "$FLAG_FORCE" = false ]; then
   warn "settings.json has a custom statusLine (not claude-hud/hud-craft)"
   warn "This will be replaced. Use --force to skip this warning."
-  warn "Proceeding in 3 seconds... (Ctrl+C to cancel)"
-  sleep 3
+  # In piped mode (curl | bash) user can't Ctrl+C, so just proceed with warning
+  if [ -t 0 ]; then
+    warn "Press Enter to continue or Ctrl+C to cancel..."
+    read -r < /dev/tty 2>/dev/null || true
+  else
+    warn "Proceeding (non-interactive mode)..."
+  fi
 fi
 
 # ── Detect runtime ────────────────────────────────────────────
@@ -612,9 +617,15 @@ fi
 if [ -d "$INSTALL_DIR/.git" ]; then
   info "Updating from git..."
   if ! git -C "$INSTALL_DIR" pull --ff-only 2>/dev/null; then
-    warn "Fast-forward failed, resetting to origin/main..."
+    warn "Fast-forward failed. Stashing local changes..."
+    git -C "$INSTALL_DIR" stash 2>/dev/null || true
     git -C "$INSTALL_DIR" fetch origin
-    git -C "$INSTALL_DIR" reset --hard origin/main
+    if ! git -C "$INSTALL_DIR" rebase origin/main 2>/dev/null; then
+      git -C "$INSTALL_DIR" rebase --abort 2>/dev/null || true
+      warn "Rebase failed — re-cloning..."
+      rm -rf "$INSTALL_DIR"
+      git clone --depth 1 "$REPO" "$INSTALL_DIR"
+    fi
   fi
   ok "Updated to latest"
 elif [ "$LOCAL_REPO" = true ]; then
@@ -768,7 +779,7 @@ fi
 header "Testing"
 
 SAMPLE_JSON='{"model":{"display_name":"Test Model"},"context_window":{"current_usage":{"input_tokens":1000},"context_window_size":200000}}'
-TEST_OUTPUT=$(echo "$SAMPLE_JSON" | eval "$CMD" 2>&1 || true)
+TEST_OUTPUT=$(echo "$SAMPLE_JSON" | "$RUNTIME" "$INSTALL_DIR/$SOURCE" 2>&1 || true)
 
 echo ""
 if [ -n "$TEST_OUTPUT" ]; then

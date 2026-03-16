@@ -158,6 +158,7 @@ All settings live in `~/.claude/plugins/hud-craft/config.json`. Edit manually or
 |-----|---------|-------|
 | `showModel` | `true` | `[Opus \| Max]` model bracket |
 | `showContextBar` | `true` | Visual progress bar for context window |
+| `contextValue` | `"percent"` | `"percent"` or `"tokens"` for context display |
 | `showUsage` | `true` | API usage percentage + time remaining |
 | `usageBarEnabled` | `true` | Bar vs text-only for usage |
 | `showTools` | `true` | Running/completed tool activity |
@@ -167,6 +168,15 @@ All settings live in `~/.claude/plugins/hud-craft/config.json`. Edit manually or
 | `showConfigCounts` | `true` | CLAUDE.md, rules, MCPs, hooks counts |
 | `showTokenBreakdown` | `true` | Token details when context >85% |
 | `showSpeed` | `false` | Output tokens per second |
+
+### Advanced Options
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `display.autocompactBuffer` | `"enabled"` | Account for Claude's internal context buffer in percentage calc |
+| `display.usageThreshold` | `0` | Only show usage bar when percentage exceeds this value (0 = always) |
+| `display.sevenDayThreshold` | `80` | Warning threshold for 7-day usage percentage |
+| `display.environmentThreshold` | `0` | Only show environment line when config count exceeds this |
 
 ### Git Status
 
