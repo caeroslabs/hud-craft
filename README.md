@@ -20,22 +20,22 @@ dot:     ●●●●○○○○○○ 45%
 ascii:   ####------ 45%
 ```
 
-## Quick Start
+## Install
 
-1. Install the plugin:
-   ```
-   /install hud-craft
-   ```
+**One-liner** (recommended):
+```bash
+curl -fsSL https://raw.githubusercontent.com/caeroslabs/hud-craft/main/install.sh | bash
+```
 
-2. Run setup:
-   ```
-   /hud-craft:setup
-   ```
+This clones the repo, detects your runtime (bun/node), configures `settings.json`, creates a default `config.json`, and verifies everything works. Safe to run multiple times.
 
-3. Customize (optional):
-   ```
-   /hud-craft:configure
-   ```
+**Manual**:
+```bash
+git clone --depth 1 https://github.com/caeroslabs/hud-craft.git ~/.claude/plugins/marketplaces/hud-craft
+# Then run /hud-craft:setup in Claude Code
+```
+
+After installation, restart Claude Code and customize with `/hud-craft:configure`.
 
 ## Configuration
 
