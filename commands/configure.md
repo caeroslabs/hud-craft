@@ -1,5 +1,5 @@
 ---
-description: Configure HUD display options — bar style, emoji mode, layout, git, and every display toggle
+description: Configure HUD display options — pick a theme or customize everything
 allowed-tools: Read, Write, AskUserQuestion
 ---
 
@@ -7,69 +7,199 @@ allowed-tools: Read, Write, AskUserQuestion
 
 **FIRST**: Use the Read tool to load `~/.claude/plugins/hud-craft/config.json` if it exists.
 
-Store current values and note whether config exists (determines which flow to use).
-
-## Two Flows
-
-### Flow A: New User (no config file)
-Run all 3 rounds sequentially with defaults.
-
-### Flow B: Returning User (config exists)
-Run all 3 rounds, showing current values in each question.
+Store current values and note whether config exists.
 
 ---
 
-## Round 1: Visual Style (4 Questions)
+## Q1: Theme Selection (Always First)
 
-### Q1: Bar Style
+- header: "Theme"
+- question: "Choose a theme for your HUD:"
+- multiSelect: false
+- options (with markdown previews):
+
+  1. **Default (Recommended)**
+     - description: "Block bars, minimal emoji, all features ON"
+     - markdown preview:
+       ```
+       [Opus | Max] | my-project git:(main*)
+       Context ████░░░░░░ 45% | Usage ██░░░░░░░░ 25% (1h 30m / 5h)
+       2 CLAUDE.md | 4 rules | 3 MCPs
+       ◐ Edit: auth.ts | ✓ Read ×3
+       ```
+
+  2. **Powerline**
+     - description: "Segment bars, full emoji, all features ON"
+     - markdown preview:
+       ```
+       [Opus | Max] | my-project git:(main*)
+       🧠 Context ▰▰▰▰▱▱▱▱▱▱ 45% | ⚡ Usage ▰▰▱▱▱▱▱▱▱▱ 25% (1h 30m / 5h)
+       2 CLAUDE.md | 4 rules | 3 MCPs
+       ◐ Edit: auth.ts | ✓ Read ×3
+       ```
+
+  3. **Clean**
+     - description: "Dot bars, no emoji, essentials only"
+     - markdown preview:
+       ```
+       [Opus | Max] | my-project git:(main*)
+       Context ●●●●○○○○○○ 45% | Usage ●●○○○○○○○○ 25% (1h 30m / 5h)
+       ```
+
+  4. **Hacker**
+     - description: "ASCII bars, compact, minimal display"
+     - markdown preview:
+       ```
+       [Opus | Max] ########-- 80% | my-project git:(main*)
+       ────────────────────────────
+       Edit: auth.ts | Read x3
+       ```
+
+  5. **Custom**
+     - description: "Configure everything step by step"
+
+---
+
+## Theme → Config Mapping
+
+### Default Theme
+```json
+{
+  "lineLayout": "expanded",
+  "showSeparators": false,
+  "barStyle": "block",
+  "barWidth": 10,
+  "emojiMode": "minimal",
+  "gitStatus": {
+    "enabled": true,
+    "showDirty": true,
+    "showAheadBehind": false,
+    "showFileStats": false
+  },
+  "display": {
+    "showModel": true,
+    "showContextBar": true,
+    "contextValue": "percent",
+    "showUsage": true,
+    "usageBarEnabled": true,
+    "showTools": true,
+    "showAgents": true,
+    "showTodos": true,
+    "showDuration": true,
+    "showConfigCounts": true,
+    "showTokenBreakdown": true,
+    "showSpeed": false,
+    "autocompactBuffer": "enabled"
+  }
+}
+```
+
+### Powerline Theme
+Same as Default, except:
+- `barStyle`: `"segment"`
+- `emojiMode`: `"full"`
+
+### Clean Theme
+Same as Default, except:
+- `barStyle`: `"dot"`
+- `emojiMode`: `"none"`
+- `display.showTools`: `false`
+- `display.showAgents`: `false`
+- `display.showTodos`: `false`
+- `display.showConfigCounts`: `false`
+
+### Hacker Theme
+Same as Default, except:
+- `lineLayout`: `"compact"`
+- `showSeparators`: `true`
+- `barStyle`: `"ascii"`
+- `barWidth`: `8`
+- `emojiMode`: `"none"`
+- `display.showAgents`: `false`
+- `display.showTodos`: `false`
+- `display.showConfigCounts`: `false`
+- `display.showDuration`: `false`
+- `display.showUsage`: `false`
+
+---
+
+## If Theme is NOT Custom → Apply & Done
+
+1. Build the full config JSON from the theme mapping above
+2. If returning user: merge with existing config, preserving advanced settings (`pathLevels`, `usageThreshold`, `sevenDayThreshold`, `environmentThreshold`)
+3. Write to `~/.claude/plugins/hud-craft/config.json`
+4. Show confirmation:
+
+```
+Theme "{name}" applied!
+
+Preview:
+{theme preview from Q1}
+
+Settings saved to ~/.claude/plugins/hud-craft/config.json
+HUD will reflect changes immediately.
+```
+
+5. **Done. Do NOT ask more questions.**
+
+---
+
+## If Custom → Round 1-3 Detail Flow
+
+When user selects "Custom", proceed with detailed configuration.
+For returning users, use current config values as defaults.
+
+### Round 1: Visual Style (4 Questions)
+
+#### Q2: Bar Style
 - header: "Bar Style"
-- question: "바 스타일을 선택하세요:" (returning: "바 스타일을 변경하시겠습니까? (현재: {current})")
+- question: "Choose bar style:"
 - multiSelect: false
 - options (with markdown previews):
   - "Block (Default)" — `████░░░░░░ 45%`
   - "Segment" — `▰▰▰▰▱▱▱▱▱▱ 45%`
   - "Dot" — `●●●●○○○○○○ 45%`
   - "ASCII" — `####------ 45%`
-- For returning users, add "Keep current" as first option
+- For returning users, add "Keep current ({current})" as first option
 
-### Q2: Bar Width
+#### Q3: Bar Width
 - header: "Bar Width"
-- question: "바 너비를 선택하세요:" (returning: "바 너비를 변경하시겠습니까? (현재: {current})")
+- question: "Choose bar width:"
 - multiSelect: false
 - options:
-  - "6칸 (Compact)" — Narrow display
-  - "8칸" — Medium compact
-  - "10칸 (Default)" — Standard width
-  - "12칸 (Wide)" — Wider display
-- For returning users, add "Keep current" as first option
+  - "6 (Compact)" — Narrow display
+  - "8" — Medium compact
+  - "10 (Default)" — Standard width
+  - "12 (Wide)" — Wider display
+- For returning users, add "Keep current ({current})" as first option
 
-### Q3: Emoji Mode
+#### Q4: Emoji Mode
 - header: "Emoji"
-- question: "이모지 모드를 선택하세요:" (returning: "이모지 모드를 변경하시겠습니까? (현재: {current})")
+- question: "Choose emoji mode:"
 - multiSelect: false
 - options:
   - "Minimal (Recommended)" — Status indicators only (✓ ◐ ⏱️ ⚠)
   - "Full" — Rich labels on context, usage, git, duration
   - "None" — Text only, no emoji/symbols
-- For returning users, add "Keep current" as first option
+- For returning users, add "Keep current ({current})" as first option
 
-### Q4: Layout
+#### Q5: Layout
 - header: "Layout"
-- question: "레이아웃을 선택하세요:" (returning: "레이아웃을 변경하시겠습니까? (현재: {current})")
+- question: "Choose layout:"
 - multiSelect: false
 - options:
   - "Expanded (Recommended)" — Multi-line: project, context+usage, environment, activity on separate lines
   - "Compact" — Single line with all info condensed
   - "Compact + Separators" — Single line with separator before activity
-- For returning users, add "Keep current" as first option
+- For returning users, add "Keep current ({current})" as first option
 
 ---
 
-## Round 2: Display Content (4 Questions)
+### Round 2: Display Content (4 Questions)
 
-### Q5: Project Line
+#### Q6: Project Line
 - header: "Project"
-- question: "프로젝트 라인에 표시할 항목을 선택하세요:"
+- question: "Select project line items:"
 - multiSelect: true
 - options (show current state for returning users):
   - "Model name [Opus | Max]" — `display.showModel` (default: ON)
@@ -77,9 +207,9 @@ Run all 3 rounds, showing current values in each question.
   - "Context value: tokens" — `display.contextValue: "tokens"` instead of percent (default: OFF = percent mode)
   - "Path depth: 2-3" — `pathLevels: 2 or 3` (default: OFF = 1 level)
 
-### Q6: Git Status
+#### Q7: Git Status
 - header: "Git"
-- question: "Git 상태 표시 항목을 선택하세요:"
+- question: "Select git status items:"
 - multiSelect: true
 - options (show current state for returning users):
   - "Branch name + dirty (*)" — `gitStatus.enabled` + `gitStatus.showDirty` (default: ON)
@@ -87,9 +217,9 @@ Run all 3 rounds, showing current values in each question.
   - "File stats (+3 ~2 -1)" — `gitStatus.showFileStats` (default: OFF)
 - If user selects nothing, git is disabled entirely
 
-### Q7: Activity Lines
+#### Q8: Activity Lines
 - header: "Activity"
-- question: "활동 라인에 표시할 항목을 선택하세요:"
+- question: "Select activity line items:"
 - multiSelect: true
 - options (show current state for returning users):
   - "Tool activity (✓ Read ×3, ◐ Edit)" — `display.showTools` (default: ON)
@@ -97,23 +227,23 @@ Run all 3 rounds, showing current values in each question.
   - "Todo progress (▸ 2/5)" — `display.showTodos` (default: ON)
   - "Separators (───)" — `showSeparators` (default: OFF)
 
-### Q8: Info & Stats
+#### Q9: Info & Stats
 - header: "Stats"
-- question: "정보/통계 항목을 선택하세요:"
+- question: "Select info/stats items:"
 - multiSelect: true
 - options (show current state for returning users):
-  - "Usage bar (API 사용량 %)" — `display.showUsage` + `display.usageBarEnabled` (default: ON)
+  - "Usage bar (API usage %)" — `display.showUsage` + `display.usageBarEnabled` (default: ON)
   - "Session duration (⏱️ 5m)" — `display.showDuration` (default: ON)
   - "Config counts (CLAUDE.md, MCPs)" — `display.showConfigCounts` (default: ON)
   - "Token breakdown (>85%)" — `display.showTokenBreakdown` (default: ON)
 
 ---
 
-## Round 3: Advanced (Optional — 1 Question)
+### Round 3: Advanced (1 Question)
 
-### Q9: Advanced Options
+#### Q10: Advanced Options
 - header: "Advanced"
-- question: "고급 옵션을 변경하시겠습니까?"
+- question: "Change advanced options?"
 - multiSelect: false
 - options:
   - "Skip (Recommended)" — Keep current advanced settings
@@ -123,8 +253,9 @@ Run all 3 rounds, showing current values in each question.
 
 ---
 
-## Bar Style Mapping
+## Config Key Mappings
 
+### Bar Style
 | Option | Config |
 |--------|--------|
 | Block | `barStyle: "block"` |
@@ -132,8 +263,7 @@ Run all 3 rounds, showing current values in each question.
 | Dot | `barStyle: "dot"` |
 | ASCII | `barStyle: "ascii"` |
 
-## Bar Width Mapping
-
+### Bar Width
 | Option | Config |
 |--------|--------|
 | 6 | `barWidth: 6` |
@@ -141,72 +271,69 @@ Run all 3 rounds, showing current values in each question.
 | 10 | `barWidth: 10` |
 | 12 | `barWidth: 12` |
 
-## Emoji Mode Mapping
-
+### Emoji Mode
 | Option | Config |
 |--------|--------|
 | Full | `emojiMode: "full"` |
 | Minimal | `emojiMode: "minimal"` |
 | None | `emojiMode: "none"` |
 
-## Layout Mapping
-
+### Layout
 | Option | Config |
 |--------|--------|
 | Expanded | `lineLayout: "expanded", showSeparators: false` |
 | Compact | `lineLayout: "compact", showSeparators: false` |
 | Compact + Separators | `lineLayout: "compact", showSeparators: true` |
 
----
+### Display Elements
+| Element | Config Key |
+|---------|------------|
+| Tools activity | `display.showTools` |
+| Agents status | `display.showAgents` |
+| Todo progress | `display.showTodos` |
+| Git status | `gitStatus.enabled` |
+| Config counts | `display.showConfigCounts` |
+| Token breakdown | `display.showTokenBreakdown` |
+| Output speed | `display.showSpeed` |
+| Usage limits | `display.showUsage` |
+| Usage bar style | `display.usageBarEnabled` |
+| Session duration | `display.showDuration` |
 
-## Preset Definitions (for Flow A Q3 or manual reset)
-
-**Full** (everything ON):
-- Activity: Tools ON, Agents ON, Todos ON
-- Info: Counts ON, Tokens ON, Usage ON (bar), Duration ON
-- Git: ON (branch + dirty, no ahead/behind)
-- Speed: OFF
-
-**Essential** (activity + git):
-- Activity: Tools ON, Agents ON, Todos ON
-- Info: Counts OFF, Tokens OFF, Usage OFF, Duration ON
-- Git: ON (branch + dirty)
-- Speed: OFF
-
-**Minimal** (core only):
-- Activity: Tools OFF, Agents OFF, Todos OFF
-- Info: Counts OFF, Tokens OFF, Usage OFF, Duration OFF
-- Git: ON (branch + dirty)
-- Speed: OFF
+**Always true (not configurable):**
+- `display.showModel: true`
+- `display.showContextBar: true`
 
 ---
 
 ## Processing Logic
 
-### New Users (Flow A):
-1. Apply Round 1 visual selections
+### Theme Selection (Default/Powerline/Clean/Hacker):
+1. Build config from theme mapping
+2. Merge with existing config (preserve advanced thresholds)
+3. Write config
+4. Show confirmation + preview
+5. **Stop — no more questions**
+
+### Custom Flow:
+1. Apply Round 1 visual selections (or keep current for returning users)
 2. Apply Round 2 content selections
 3. Apply Round 3 advanced selection
 4. Generate complete config
-
-### Returning Users (Flow B):
-1. Start from current config
-2. Apply changes from each Round (skip "Keep current" selections)
-3. Preserve advanced settings not shown in the flow (`usageThreshold`, `sevenDayThreshold`, `environmentThreshold`)
+5. For returning users: preserve `usageThreshold`, `sevenDayThreshold`, `environmentThreshold`
 
 ---
 
-## Before Writing — Validate & Preview
+## Before Writing (Custom flow only) — Validate & Preview
 
 **GUARDS — Do NOT write config if:**
-- User cancels (Esc) — say "설정이 취소되었습니다."
-- No changes from current config — say "변경 사항이 없습니다."
+- User cancels (Esc) — say "Configuration cancelled."
+- No changes from current config — say "No changes needed."
 
 **Show preview before saving:**
 
-1. **변경 사항 요약** (list only changed items)
-2. **HUD 미리보기** (ASCII preview of expected output)
-3. **확인**: "이 설정을 저장하시겠습니까?"
+1. **Changes summary** (list only changed items)
+2. **HUD preview** (ASCII preview of expected output with chosen bar style)
+3. **Confirm**: "Save these settings?"
 
 ---
 
@@ -220,7 +347,6 @@ Complete config structure:
 {
   "lineLayout": "expanded",
   "showSeparators": false,
-  "pathLevels": 1,
   "barStyle": "block",
   "barWidth": 10,
   "emojiMode": "minimal",
@@ -252,10 +378,10 @@ Complete config structure:
 
 ## After Writing
 
-Say: "설정이 저장되었습니다! HUD에 바로 반영됩니다."
+Say: "Settings saved! HUD will reflect changes immediately."
 
 If bar style or emoji mode changed, show a brief preview:
 ```
-변경된 바 스타일: ▰▰▰▰▱▱▱▱▱▱ 45%
-이모지 모드: minimal (✓ ◐ ⏱️ ⚠)
+Bar style: ▰▰▰▰▱▱▱▱▱▱ 45%
+Emoji mode: minimal (✓ ◐ ⏱️ ⚠)
 ```
