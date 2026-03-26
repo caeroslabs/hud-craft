@@ -1,7 +1,8 @@
 import type { RenderContext } from '../../types.js';
 import { isLimitReached } from '../../types.js';
 import { getProviderLabel } from '../../stdin.js';
-import { red, yellow, dim, getQuotaColor, quotaBar, RESET } from '../colors.js';
+import { red, yellow, quotaBar } from '../colors.js';
+import { formatUsagePercent, formatUsageError, formatFiveHourReset, formatSevenDayReset, formatResetTime } from '../utils.js';
 
 export function renderUsageLine(ctx: RenderContext): string | null {
   const display = ctx.config?.display;
@@ -68,46 +69,3 @@ export function renderUsageLine(ctx: RenderContext): string | null {
   return `${label} ${fiveHourPart}`;
 }
 
-function formatUsagePercent(percent: number | null): string {
-  if (percent === null) {
-    return dim('--');
-  }
-  const color = getQuotaColor(percent);
-  return `${color}${percent}%${RESET}`;
-}
-
-function formatUsageError(error?: string): string {
-  if (!error) return '';
-  if (error.startsWith('http-')) {
-    return ` (${error.slice(5)})`;
-  }
-  return ` (${error})`;
-}
-
-function formatLocalTime(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function formatLocalDateTime(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function formatFiveHourReset(resetAt: Date | null): string {
-  if (!resetAt) return '';
-  if (resetAt.getTime() - Date.now() <= 0) return '';
-  return formatLocalTime(resetAt);
-}
-
-function formatSevenDayReset(resetAt: Date | null): string {
-  if (!resetAt) return '';
-  if (resetAt.getTime() - Date.now() <= 0) return '';
-  return formatLocalDateTime(resetAt);
-}
-
-function formatResetTime(resetAt: Date | null): string {
-  if (!resetAt) return '';
-  if (resetAt.getTime() - Date.now() <= 0) return '';
-  return formatLocalTime(resetAt);
-}

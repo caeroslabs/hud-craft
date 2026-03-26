@@ -8,6 +8,9 @@ import * as os from 'node:os';
 
 const MAX_STATE_AGE_MS = 2 * 60 * 60 * 1000; // 2시간
 
+// 상태 파일 경로 인메모리 캐시 (프로세스 수명 동안 유효)
+const STATE_PATH_CACHE = new Map<string, string | null>();
+
 function isStale(filePath: string): boolean {
   try {
     return Date.now() - fs.statSync(filePath).mtimeMs > MAX_STATE_AGE_MS;
@@ -23,10 +26,25 @@ function omcRoot(cwd: string): string {
 // 2. .omc/state/filename
 // 3. .omc/filename (legacy)
 // 4. ~/.omc/state/filename (홈 fallback)
+// 캐시: 동일 cwd+filename 조합은 프로세스 내에서 재스캔 없이 반환
 function resolveStatePath(cwd: string, filename: string): string | null {
+  const cacheKey = `${cwd}:${filename}`;
+  if (STATE_PATH_CACHE.has(cacheKey)) {
+    return STATE_PATH_CACHE.get(cacheKey) ?? null;
+  }
+
   const root = omcRoot(cwd);
   let best: string | null = null;
   let bestMtime = 0;
+
+  // 표준 경로를 먼저 확인 (가장 일반적인 경우)
+  const standard = path.join(root, 'state', filename);
+  if (fs.existsSync(standard)) {
+    try {
+      const mtime = fs.statSync(standard).mtimeMs;
+      if (mtime > bestMtime) { bestMtime = mtime; best = standard; }
+    } catch { if (!best) best = standard; }
+  }
 
   // 세션 스코프
   const sessionsDir = path.join(root, 'state', 'sessions');
@@ -41,15 +59,6 @@ function resolveStatePath(cwd: string, filename: string): string | null {
         }
       }
     } catch { /* ignore */ }
-  }
-
-  // 표준
-  const standard = path.join(root, 'state', filename);
-  if (fs.existsSync(standard)) {
-    try {
-      const mtime = fs.statSync(standard).mtimeMs;
-      if (mtime > bestMtime) { bestMtime = mtime; best = standard; }
-    } catch { if (!best) best = standard; }
   }
 
   // 레거시
@@ -67,6 +76,7 @@ function resolveStatePath(cwd: string, filename: string): string | null {
     if (fs.existsSync(home)) best = home;
   }
 
+  STATE_PATH_CACHE.set(cacheKey, best);
   return best;
 }
 

@@ -10,6 +10,8 @@ export interface ConfigCounts {
   rulesCount: number;
   mcpCount: number;
   hooksCount: number;
+  mcpNames: string[];
+  hookNames: string[];
 }
 
 // Valid keys for disabled MCP arrays in config files
@@ -72,6 +74,20 @@ function countHooksInFile(filePath: string): number {
   return 0;
 }
 
+function getHookNamesInFile(filePath: string): Set<string> {
+  if (!fs.existsSync(filePath)) return new Set();
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const config = JSON.parse(content);
+    if (config.hooks && typeof config.hooks === 'object') {
+      return new Set(Object.keys(config.hooks));
+    }
+  } catch (error) {
+    debug(`Failed to read hook names from ${filePath}:`, error);
+  }
+  return new Set();
+}
+
 function countRulesInDir(rulesDir: string): number {
   if (!fs.existsSync(rulesDir)) return 0;
   let count = 0;
@@ -102,6 +118,7 @@ export async function countConfigs(cwd?: string): Promise<ConfigCounts> {
   // Collect all MCP servers across scopes, then subtract disabled ones
   const userMcpServers = new Set<string>();
   const projectMcpServers = new Set<string>();
+  const allHookNames = new Set<string>();
 
   // === USER SCOPE ===
 
@@ -119,6 +136,9 @@ export async function countConfigs(cwd?: string): Promise<ConfigCounts> {
     userMcpServers.add(name);
   }
   hooksCount += countHooksInFile(userSettings);
+  for (const name of getHookNamesInFile(userSettings)) {
+    allHookNames.add(name);
+  }
 
   // ~/.claude.json (additional user-scope MCPs)
   const userClaudeJson = path.join(homeDir, '.claude.json');
@@ -167,6 +187,9 @@ export async function countConfigs(cwd?: string): Promise<ConfigCounts> {
       projectMcpServers.add(name);
     }
     hooksCount += countHooksInFile(projectSettings);
+    for (const name of getHookNamesInFile(projectSettings)) {
+      allHookNames.add(name);
+    }
 
     // {cwd}/.claude/settings.local.json (local project settings)
     const localSettings = path.join(cwd, '.claude', 'settings.local.json');
@@ -174,6 +197,9 @@ export async function countConfigs(cwd?: string): Promise<ConfigCounts> {
       projectMcpServers.add(name);
     }
     hooksCount += countHooksInFile(localSettings);
+    for (const name of getHookNamesInFile(localSettings)) {
+      allHookNames.add(name);
+    }
 
     // Get disabled .mcp.json servers from settings.local.json
     const disabledMcpJsonServers = getDisabledMcpServers(localSettings, 'disabledMcpjsonServers');
@@ -191,7 +217,8 @@ export async function countConfigs(cwd?: string): Promise<ConfigCounts> {
   // Note: Deduplication only occurs within each scope, not across scopes.
   // A server with the same name in both user and project scope counts as 2 (separate configs).
   const mcpCount = userMcpServers.size + projectMcpServers.size;
+  const allMcpNames = [...userMcpServers, ...projectMcpServers];
 
-  return { claudeMdCount, rulesCount, mcpCount, hooksCount };
+  return { claudeMdCount, rulesCount, mcpCount, hooksCount, mcpNames: allMcpNames, hookNames: [...allHookNames] };
 }
 

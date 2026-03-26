@@ -27,7 +27,7 @@ test('loadConfig returns valid config structure', async () => {
   assert.equal(typeof config.display, 'object');
   assert.equal(typeof config.display.showModel, 'boolean');
   assert.equal(typeof config.display.showContextBar, 'boolean');
-  assert.ok(['percent', 'tokens'].includes(config.display.contextValue), 'contextValue should be valid');
+  assert.ok(['percent', 'tokens', 'remaining'].includes(config.display.contextValue), 'contextValue should be valid');
   assert.equal(typeof config.display.showConfigCounts, 'boolean');
   assert.equal(typeof config.display.showDuration, 'boolean');
   assert.equal(typeof config.display.showSpeed, 'boolean');

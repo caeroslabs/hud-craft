@@ -1,6 +1,7 @@
 import type { BarStyle, CustomColors } from '../config.js';
 export declare const RESET = "\u001B[0m";
 export declare function applyCustomColors(colors: CustomColors): void;
+export declare function resetCustomColors(): void;
 export declare const BAR_PRESETS: Record<BarStyle, {
     filled: string;
     empty: string;

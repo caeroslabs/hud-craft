@@ -1,5 +1,6 @@
 import { getModelName, getProviderLabel } from '../../stdin.js';
 import { cyan, yellow, green, dim } from '../colors.js';
+import { buildGitParts } from '../utils.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
@@ -50,33 +51,7 @@ export function renderProjectLine(ctx) {
         const gitConfig = ctx.config?.gitStatus;
         const showGit = gitConfig?.enabled ?? true;
         if (showGit && ctx.gitStatus) {
-            const gitParts = [ctx.gitStatus.branch];
-            if ((gitConfig?.showDirty ?? true) && ctx.gitStatus.isDirty) {
-                gitParts.push('*');
-            }
-            if (gitConfig?.showAheadBehind) {
-                if (ctx.gitStatus.ahead > 0) {
-                    gitParts.push(` ↑${ctx.gitStatus.ahead}`);
-                }
-                if (ctx.gitStatus.behind > 0) {
-                    gitParts.push(` ↓${ctx.gitStatus.behind}`);
-                }
-            }
-            if (gitConfig?.showFileStats && ctx.gitStatus.fileStats) {
-                const { modified, added, deleted, untracked } = ctx.gitStatus.fileStats;
-                const statParts = [];
-                if (modified > 0)
-                    statParts.push(`!${modified}`);
-                if (added > 0)
-                    statParts.push(`+${added}`);
-                if (deleted > 0)
-                    statParts.push(`✘${deleted}`);
-                if (untracked > 0)
-                    statParts.push(`?${untracked}`);
-                if (statParts.length > 0) {
-                    gitParts.push(` ${statParts.join(' ')}`);
-                }
-            }
+            const gitParts = buildGitParts(ctx.gitStatus, gitConfig);
             gitPart = `  🌿 ${green(gitParts.join(''))}`;
         }
         parts.push(`📁 ${yellow(projectPath)}${gitPart}`);

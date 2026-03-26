@@ -723,9 +723,9 @@ if [ ! -f "$CONFIG_DIR/config.json" ]; then
   cat > "$CONFIG_DIR/config.json" << 'CONF'
 {
   "lineLayout": "expanded",
-  "barStyle": "block",
-  "barWidth": 10,
-  "emojiMode": "minimal",
+  "barStyle": "segment",
+  "barWidth": 6,
+  "emojiMode": "full",
   "gitStatus": {
     "enabled": true,
     "showDirty": true,
@@ -744,7 +744,9 @@ if [ ! -f "$CONFIG_DIR/config.json" ]; then
     "showDuration": true,
     "showConfigCounts": true,
     "showTokenBreakdown": true,
-    "showSpeed": false
+    "showSpeed": false,
+    "showCost": false,
+    "showThinking": true
   }
 }
 CONF

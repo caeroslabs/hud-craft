@@ -11,7 +11,7 @@ export async function readStdin(): Promise<StdinData | null> {
   try {
     process.stdin.setEncoding('utf8');
     for await (const chunk of process.stdin) {
-      chunks.push(chunk as string);
+      chunks.push(String(chunk));
     }
     const raw = chunks.join('');
     if (!raw.trim()) {

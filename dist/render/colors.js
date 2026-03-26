@@ -18,6 +18,9 @@ let currentColors = {};
 export function applyCustomColors(colors) {
     currentColors = colors;
 }
+export function resetCustomColors() {
+    currentColors = {};
+}
 export const BAR_PRESETS = {
     block: { filled: '█', empty: '░' },
     segment: { filled: '▰', empty: '▱' },

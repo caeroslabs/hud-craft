@@ -1,9 +1,10 @@
 import type { RenderContext } from '../types.js';
 import { isLimitReached } from '../types.js';
-import { getContextPercent, getBufferedPercent, getModelName, getProviderLabel, getTotalTokens } from '../stdin.js';
+import { getContextPercent, getBufferedPercent, getModelName, getProviderLabel } from '../stdin.js';
 import { getOutputSpeed } from '../speed-tracker.js';
 import { coloredBar, cyan, dim, magenta, red, yellow, getContextColor, quotaBar, RESET } from './colors.js';
 import { emoji } from './emojis.js';
+import { formatTokens, formatContextValue, formatUsagePercent, formatUsageError, formatResetTime, buildGitParts } from './utils.js';
 
 const DEBUG = process.env.DEBUG?.includes('hud-craft') || process.env.DEBUG === '*';
 
@@ -63,36 +64,7 @@ export function renderSessionLine(ctx: RenderContext): string {
     const showGit = gitConfig?.enabled ?? true;
 
     if (showGit && ctx.gitStatus) {
-      const gitParts: string[] = [ctx.gitStatus.branch];
-
-      // Show dirty indicator
-      if ((gitConfig?.showDirty ?? true) && ctx.gitStatus.isDirty) {
-        gitParts.push('*');
-      }
-
-      // Show ahead/behind (with space separator for readability)
-      if (gitConfig?.showAheadBehind) {
-        if (ctx.gitStatus.ahead > 0) {
-          gitParts.push(` ↑${ctx.gitStatus.ahead}`);
-        }
-        if (ctx.gitStatus.behind > 0) {
-          gitParts.push(` ↓${ctx.gitStatus.behind}`);
-        }
-      }
-
-      // Show file stats in Starship-compatible format (!modified +added ✘deleted ?untracked)
-      if (gitConfig?.showFileStats && ctx.gitStatus.fileStats) {
-        const { modified, added, deleted, untracked } = ctx.gitStatus.fileStats;
-        const statParts: string[] = [];
-        if (modified > 0) statParts.push(`!${modified}`);
-        if (added > 0) statParts.push(`+${added}`);
-        if (deleted > 0) statParts.push(`✘${deleted}`);
-        if (untracked > 0) statParts.push(`?${untracked}`);
-        if (statParts.length > 0) {
-          gitParts.push(` ${statParts.join(' ')}`);
-        }
-      }
-
+      const gitParts = buildGitParts(ctx.gitStatus, gitConfig);
       gitPart = ` ${magenta('git:(')}${cyan(gitParts.join(''))}${magenta(')')}`;
     }
 
@@ -200,62 +172,3 @@ export function renderSessionLine(ctx: RenderContext): string {
   return line;
 }
 
-function formatTokens(n: number): string {
-  if (n >= 1000000) {
-    return `${(n / 1000000).toFixed(1)}M`;
-  }
-  if (n >= 1000) {
-    return `${(n / 1000).toFixed(0)}k`;
-  }
-  return n.toString();
-}
-
-function formatContextValue(ctx: RenderContext, percent: number, mode: 'percent' | 'tokens' | 'remaining'): string {
-  if (mode === 'tokens') {
-    const totalTokens = getTotalTokens(ctx.stdin);
-    const size = ctx.stdin.context_window?.context_window_size ?? 0;
-    if (size > 0) {
-      return `${formatTokens(totalTokens)}/${formatTokens(size)}`;
-    }
-    return formatTokens(totalTokens);
-  }
-
-  if (mode === 'remaining') {
-    const totalTokens = getTotalTokens(ctx.stdin);
-    const size = ctx.stdin.context_window?.context_window_size ?? 0;
-    const remaining = Math.max(0, size - totalTokens);
-    return `${formatTokens(remaining)} left`;
-  }
-
-  return `${percent}%`;
-}
-
-function formatUsagePercent(percent: number | null): string {
-  if (percent === null) {
-    return dim('--');
-  }
-  const color = getContextColor(percent);
-  return `${color}${percent}%${RESET}`;
-}
-
-function formatUsageError(error?: string): string {
-  if (!error) return '';
-  if (error.startsWith('http-')) {
-    return ` (${error.slice(5)})`;
-  }
-  return ` (${error})`;
-}
-
-function formatResetTime(resetAt: Date | null): string {
-  if (!resetAt) return '';
-  const now = new Date();
-  const diffMs = resetAt.getTime() - now.getTime();
-  if (diffMs <= 0) return '';
-
-  const diffMins = Math.ceil(diffMs / 60000);
-  if (diffMins < 60) return `${diffMins}m`;
-
-  const hours = Math.floor(diffMins / 60);
-  const mins = diffMins % 60;
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-}

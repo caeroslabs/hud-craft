@@ -7,7 +7,7 @@ export async function readStdin() {
     try {
         process.stdin.setEncoding('utf8');
         for await (const chunk of process.stdin) {
-            chunks.push(chunk);
+            chunks.push(String(chunk));
         }
         const raw = chunks.join('');
         if (!raw.trim()) {

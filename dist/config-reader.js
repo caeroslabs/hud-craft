@@ -62,6 +62,21 @@ function countHooksInFile(filePath) {
     }
     return 0;
 }
+function getHookNamesInFile(filePath) {
+    if (!fs.existsSync(filePath))
+        return new Set();
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const config = JSON.parse(content);
+        if (config.hooks && typeof config.hooks === 'object') {
+            return new Set(Object.keys(config.hooks));
+        }
+    }
+    catch (error) {
+        debug(`Failed to read hook names from ${filePath}:`, error);
+    }
+    return new Set();
+}
 function countRulesInDir(rulesDir) {
     if (!fs.existsSync(rulesDir))
         return 0;
@@ -92,6 +107,7 @@ export async function countConfigs(cwd) {
     // Collect all MCP servers across scopes, then subtract disabled ones
     const userMcpServers = new Set();
     const projectMcpServers = new Set();
+    const allHookNames = new Set();
     // === USER SCOPE ===
     // ~/.claude/CLAUDE.md
     if (fs.existsSync(path.join(claudeDir, 'CLAUDE.md'))) {
@@ -105,6 +121,9 @@ export async function countConfigs(cwd) {
         userMcpServers.add(name);
     }
     hooksCount += countHooksInFile(userSettings);
+    for (const name of getHookNamesInFile(userSettings)) {
+        allHookNames.add(name);
+    }
     // ~/.claude.json (additional user-scope MCPs)
     const userClaudeJson = path.join(homeDir, '.claude.json');
     for (const name of getMcpServerNames(userClaudeJson)) {
@@ -143,12 +162,18 @@ export async function countConfigs(cwd) {
             projectMcpServers.add(name);
         }
         hooksCount += countHooksInFile(projectSettings);
+        for (const name of getHookNamesInFile(projectSettings)) {
+            allHookNames.add(name);
+        }
         // {cwd}/.claude/settings.local.json (local project settings)
         const localSettings = path.join(cwd, '.claude', 'settings.local.json');
         for (const name of getMcpServerNames(localSettings)) {
             projectMcpServers.add(name);
         }
         hooksCount += countHooksInFile(localSettings);
+        for (const name of getHookNamesInFile(localSettings)) {
+            allHookNames.add(name);
+        }
         // Get disabled .mcp.json servers from settings.local.json
         const disabledMcpJsonServers = getDisabledMcpServers(localSettings, 'disabledMcpjsonServers');
         for (const name of disabledMcpJsonServers) {
@@ -163,6 +188,7 @@ export async function countConfigs(cwd) {
     // Note: Deduplication only occurs within each scope, not across scopes.
     // A server with the same name in both user and project scope counts as 2 (separate configs).
     const mcpCount = userMcpServers.size + projectMcpServers.size;
-    return { claudeMdCount, rulesCount, mcpCount, hooksCount };
+    const allMcpNames = [...userMcpServers, ...projectMcpServers];
+    return { claudeMdCount, rulesCount, mcpCount, hooksCount, mcpNames: allMcpNames, hookNames: [...allHookNames] };
 }
 //# sourceMappingURL=config-reader.js.map

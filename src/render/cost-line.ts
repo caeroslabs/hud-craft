@@ -1,7 +1,8 @@
 import type { RenderContext } from '../types.js';
 import { dim } from './colors.js';
 
-// Claude API 가격표 (USD per 1M tokens, 2025년 기준)
+// Pricing as of 2025 — https://docs.anthropic.com/en/docs/about-claude/pricing
+// TODO: Allow pricing override via config for future price changes
 const PRICING: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
   'opus':   { input: 15, output: 75, cacheRead: 1.5, cacheWrite: 18.75 },
   'sonnet': { input: 3,  output: 15, cacheRead: 0.3, cacheWrite: 3.75 },

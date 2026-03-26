@@ -1,5 +1,6 @@
-import { getContextPercent, getBufferedPercent, getTotalTokens } from '../../stdin.js';
+import { getContextPercent, getBufferedPercent } from '../../stdin.js';
 import { dim, getContextColor, RESET } from '../colors.js';
+import { formatTokens, formatContextValue } from '../utils.js';
 const DEBUG = process.env.DEBUG?.includes('hud-craft') || process.env.DEBUG === '*';
 export function renderIdentityLine(ctx) {
     const rawPercent = getContextPercent(ctx.stdin);
@@ -23,31 +24,5 @@ export function renderIdentityLine(ctx) {
         }
     }
     return line;
-}
-function formatTokens(n) {
-    if (n >= 1000000) {
-        return `${(n / 1000000).toFixed(1)}M`;
-    }
-    if (n >= 1000) {
-        return `${(n / 1000).toFixed(0)}k`;
-    }
-    return n.toString();
-}
-function formatContextValue(ctx, percent, mode) {
-    if (mode === 'tokens') {
-        const totalTokens = getTotalTokens(ctx.stdin);
-        const size = ctx.stdin.context_window?.context_window_size ?? 0;
-        if (size > 0) {
-            return `${formatTokens(totalTokens)}/${formatTokens(size)}`;
-        }
-        return formatTokens(totalTokens);
-    }
-    if (mode === 'remaining') {
-        const totalTokens = getTotalTokens(ctx.stdin);
-        const size = ctx.stdin.context_window?.context_window_size ?? 0;
-        const remaining = Math.max(0, size - totalTokens);
-        return `${formatTokens(remaining)} left`;
-    }
-    return `${percent}%`;
 }
 //# sourceMappingURL=identity.js.map

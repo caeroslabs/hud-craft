@@ -33,7 +33,7 @@ export async function main(overrides = {}) {
         }
         const transcriptPath = stdin.transcript_path ?? '';
         const transcript = await deps.parseTranscript(transcriptPath);
-        const { claudeMdCount, rulesCount, mcpCount, hooksCount } = await deps.countConfigs(stdin.cwd);
+        const { claudeMdCount, rulesCount, mcpCount, hooksCount, mcpNames, hookNames } = await deps.countConfigs(stdin.cwd);
         const baseConfig = await deps.loadConfig(stdin.cwd);
         const cliOverrides = parseCliOverrides();
         const config = { ...baseConfig, ...cliOverrides };
@@ -58,6 +58,8 @@ export async function main(overrides = {}) {
             rulesCount,
             mcpCount,
             hooksCount,
+            mcpNames,
+            hookNames,
             sessionDuration,
             gitStatus,
             usageData,

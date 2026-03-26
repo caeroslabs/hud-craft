@@ -19,40 +19,40 @@ Store current values and note whether config exists.
 - options (with markdown previews):
 
   1. **Default (Recommended)**
-     - description: "Block bars, minimal emoji, all features ON"
-     - markdown preview:
-       ```
-       [Opus | Max] | my-project git:(main*)
-       Context ████░░░░░░ 45% | Usage ██░░░░░░░░ 25% (1h 30m / 5h)
-       2 CLAUDE.md | 4 rules | 3 MCPs
-       ◐ Edit: auth.ts | ✓ Read ×3
-       ```
-
-  2. **Powerline**
      - description: "Segment bars, full emoji, all features ON"
      - markdown preview:
        ```
-       [Opus | Max] | my-project git:(main*)
-       🧠 Context ▰▰▰▰▱▱▱▱▱▱ 45% | ⚡ Usage ▰▰▱▱▱▱▱▱▱▱ 25% (1h 30m / 5h)
-       2 CLAUDE.md | 4 rules | 3 MCPs
-       ◐ Edit: auth.ts | ✓ Read ×3
+       [Opus 4 | Max] · my-project git:(main*) · ⏱️ 12m
+       ⚡ ▰▰▰▱▱▱ 52% · 🧠 34%
+       🔌 context7 · scrapling · 🪝 3 hooks · 📋 2 CLAUDE.md
+       ✏️ Edit ×2 · 📖 Read ×5
+       ```
+
+  2. **Powerline**
+     - description: "Segment bars wide, full emoji, all features ON"
+     - markdown preview:
+       ```
+       [Opus 4 | Max] · my-project git:(main*) · ⏱️ 12m
+       ⚡ ▰▰▰▰▰▱▱▱▱▱ 52% · 🧠 34%
+       🔌 context7 · scrapling · 🪝 3 hooks · 📋 2 CLAUDE.md
+       ✏️ Edit ×2 · 📖 Read ×5
        ```
 
   3. **Clean**
      - description: "Dot bars, no emoji, essentials only"
      - markdown preview:
        ```
-       [Opus | Max] | my-project git:(main*)
-       Context ●●●●○○○○○○ 45% | Usage ●●○○○○○○○○ 25% (1h 30m / 5h)
+       [Opus 4 | Max] · my-project git:(main*) · 12m
+       ●●●●●○○○○○ 52% · 34%
        ```
 
   4. **Hacker**
      - description: "ASCII bars, compact, minimal display"
      - markdown preview:
        ```
-       [Opus | Max] ########-- 80% | my-project git:(main*)
+       [Opus 4 | Max] ####---- 52% · my-project git:(main*)
        ────────────────────────────
-       Edit: auth.ts | Read x3
+       Edit ×2 · Read ×5
        ```
 
   5. **Custom**
@@ -67,9 +67,9 @@ Store current values and note whether config exists.
 {
   "lineLayout": "expanded",
   "showSeparators": false,
-  "barStyle": "block",
-  "barWidth": 10,
-  "emojiMode": "minimal",
+  "barStyle": "segment",
+  "barWidth": 6,
+  "emojiMode": "full",
   "gitStatus": {
     "enabled": true,
     "showDirty": true,
@@ -96,8 +96,7 @@ Store current values and note whether config exists.
 
 ### Powerline Theme
 Same as Default, except:
-- `barStyle`: `"segment"`
-- `emojiMode`: `"full"`
+- `barWidth`: `10`
 
 ### Clean Theme
 Same as Default, except:
@@ -347,9 +346,9 @@ Complete config structure:
 {
   "lineLayout": "expanded",
   "showSeparators": false,
-  "barStyle": "block",
-  "barWidth": 10,
-  "emojiMode": "minimal",
+  "barStyle": "segment",
+  "barWidth": 6,
+  "emojiMode": "full",
   "gitStatus": {
     "enabled": true,
     "showDirty": true,
@@ -369,6 +368,8 @@ Complete config structure:
     "showConfigCounts": true,
     "showTokenBreakdown": true,
     "showSpeed": false,
+    "showCost": false,
+    "showThinking": true,
     "autocompactBuffer": "enabled"
   }
 }

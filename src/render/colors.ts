@@ -25,6 +25,10 @@ export function applyCustomColors(colors: CustomColors): void {
   currentColors = colors;
 }
 
+export function resetCustomColors(): void {
+  currentColors = {};
+}
+
 export const BAR_PRESETS: Record<BarStyle, { filled: string; empty: string }> = {
   block: { filled: '█', empty: '░' },
   segment: { filled: '▰', empty: '▱' },

@@ -334,6 +334,15 @@ export async function loadConfig(cwd?: string): Promise<HudConfig> {
   if (projectPath) {
     try {
       const projectConfig = JSON.parse(fs.readFileSync(projectPath, 'utf-8'));
+      if (projectConfig.gitStatus) {
+        userConfig.gitStatus = { ...userConfig.gitStatus, ...projectConfig.gitStatus };
+      }
+      if (projectConfig.display) {
+        userConfig.display = { ...userConfig.display, ...projectConfig.display };
+      }
+      if (projectConfig.colors) {
+        userConfig.colors = { ...userConfig.colors, ...projectConfig.colors };
+      }
       userConfig = { ...userConfig, ...projectConfig };
     } catch { /* ignore */ }
   }

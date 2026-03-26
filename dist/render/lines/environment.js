@@ -1,41 +1,4 @@
 import { dim, cyan } from '../colors.js';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
-function readMcpNames() {
-    const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-    const settingsFiles = [
-        path.join(configDir, 'settings.json'),
-        path.join(os.homedir(), '.claude', 'settings.json'),
-    ];
-    const names = new Set();
-    for (const f of settingsFiles) {
-        try {
-            const d = JSON.parse(fs.readFileSync(f, 'utf8'));
-            for (const k of Object.keys(d.mcpServers ?? {}))
-                names.add(k);
-        }
-        catch { /* ignore */ }
-    }
-    return [...names];
-}
-function readHookNames() {
-    const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-    const settingsFiles = [
-        path.join(configDir, 'settings.json'),
-        path.join(os.homedir(), '.claude', 'settings.json'),
-    ];
-    const names = new Set();
-    for (const f of settingsFiles) {
-        try {
-            const d = JSON.parse(fs.readFileSync(f, 'utf8'));
-            for (const k of Object.keys(d.hooks ?? {}))
-                names.add(k);
-        }
-        catch { /* ignore */ }
-    }
-    return [...names];
-}
 export function renderEnvironmentLine(ctx) {
     const display = ctx.config?.display;
     if (display?.showConfigCounts === false) {
@@ -48,7 +11,7 @@ export function renderEnvironmentLine(ctx) {
     }
     const parts = [];
     if (ctx.mcpCount > 0) {
-        const names = readMcpNames();
+        const names = ctx.mcpNames ?? [];
         let label;
         if (names.length === 0) {
             label = `${ctx.mcpCount} MCPs`;
@@ -62,7 +25,7 @@ export function renderEnvironmentLine(ctx) {
         parts.push(`🔌 ${label}`);
     }
     if (ctx.hooksCount > 0) {
-        const names = readHookNames();
+        const names = ctx.hookNames ?? [];
         let label;
         if (names.length === 0) {
             label = `${ctx.hooksCount} hooks`;

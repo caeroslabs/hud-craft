@@ -1,40 +1,5 @@
 import type { RenderContext } from '../../types.js';
 import { dim, cyan } from '../colors.js';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
-
-function readMcpNames(): string[] {
-  const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-  const settingsFiles = [
-    path.join(configDir, 'settings.json'),
-    path.join(os.homedir(), '.claude', 'settings.json'),
-  ];
-  const names = new Set<string>();
-  for (const f of settingsFiles) {
-    try {
-      const d = JSON.parse(fs.readFileSync(f, 'utf8'));
-      for (const k of Object.keys(d.mcpServers ?? {})) names.add(k);
-    } catch { /* ignore */ }
-  }
-  return [...names];
-}
-
-function readHookNames(): string[] {
-  const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-  const settingsFiles = [
-    path.join(configDir, 'settings.json'),
-    path.join(os.homedir(), '.claude', 'settings.json'),
-  ];
-  const names = new Set<string>();
-  for (const f of settingsFiles) {
-    try {
-      const d = JSON.parse(fs.readFileSync(f, 'utf8'));
-      for (const k of Object.keys(d.hooks ?? {})) names.add(k);
-    } catch { /* ignore */ }
-  }
-  return [...names];
-}
 
 export function renderEnvironmentLine(ctx: RenderContext): string | null {
   const display = ctx.config?.display;
@@ -53,7 +18,7 @@ export function renderEnvironmentLine(ctx: RenderContext): string | null {
   const parts: string[] = [];
 
   if (ctx.mcpCount > 0) {
-    const names = readMcpNames();
+    const names = ctx.mcpNames ?? [];
     let label: string;
     if (names.length === 0) {
       label = `${ctx.mcpCount} MCPs`;
@@ -66,7 +31,7 @@ export function renderEnvironmentLine(ctx: RenderContext): string | null {
   }
 
   if (ctx.hooksCount > 0) {
-    const names = readHookNames();
+    const names = ctx.hookNames ?? [];
     let label: string;
     if (names.length === 0) {
       label = `${ctx.hooksCount} hooks`;
